@@ -62,7 +62,23 @@ else if (!in_array($project, ['copybro', 'mafin'])) response(error_response(1002
 
 if ($path == 'auth.sendCode') call('POST', $method, $query, 'Session::phone_code');
 else if ($path == 'auth.confirmCode') call('POST', $method, $query, 'Session::phone_confirm');
-else {
+else if ($path == 'user.get') {
+    // validate
+    if (!$token) response(error_response(1001, 'User authorization failed: no access token passed.'));
+    call('GET', $method, $query, 'User::user_info');
+} else if ($path == 'user.update') {
+    // validate
+    if (!$token) response(error_response(1001, 'User authorization failed: no access token passed.'));
+    call('POST', $method, $query, 'User::user_update');
+} else if ($path == 'notifications.get') {
+    // validate
+    if (!$token) response(error_response(1001, 'User authorization failed: no access token passed.'));
+    call('GET', $method, $query, 'Notification::notification_info');
+} else if ($path == 'notifications.read') {
+    // validate
+    if (!$token) response(error_response(1001, 'User authorization failed: no access token passed.'));
+    call('POST', $method, $query, 'Notification::notifications_read');
+} else {
     // validate
     if (!$token) response(error_response(1001, 'User authorization failed: no access token passed.'));
     // session

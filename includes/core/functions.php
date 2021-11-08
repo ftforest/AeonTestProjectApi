@@ -68,3 +68,9 @@ function phone_formatting($phone) {
     if (preg_match('~^[78][\d]{10}$~', $phone)) $phone = preg_replace('~^([78])([\d]{3})([\d]{3})([\d]{2})([\d]{2})$~', '+$1 ($2) $3-$4-$5', $phone);
     return $phone;
 }
+
+function phone_check($phone) {
+    $phone_check = preg_match('~^[78][\d]{10}$~', $phone, $phone_out);
+    if (empty($phone_check)) return false;
+    return (int) $phone_out;
+}
