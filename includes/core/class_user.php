@@ -58,141 +58,66 @@ class User {
 
     public static function owner_info() {
         // your code here ...
+
+        $q = DB::query("SELECT user_id, phone, first_name, last_name, middle_name, email, gender_id, count_notifications FROM users WHERE 'user_id' = ".Session::$user_id." LIMIT 1;") or die (DB::error());
+        if ($row = DB::fetch_row($q)) {
+            return [
+                'id' => (int) $row['user_id'],
+                'first_name' => $row['first_name'],
+                'last_name' => $row['last_name'],
+                'middle_name' => $row['middle_name'],
+                'gender_id' => (int) $row['gender_id'],
+                'email' => $row['email'],
+                'phone' => (int) $row['phone'],
+                'phone_str' => phone_formatting($row['phone']),
+                'count_notifications' => (int) $row['count_notifications']
+            ];
+        } else {
+            return [
+                'id' => 0,
+                'first_name' => '',
+                'last_name' => '',
+                'middle_name' => '',
+                'gender_id' => 0,
+                'email' => '',
+                'phone' => '',
+                'phone_str' => '',
+                'count_notifications' => 0
+            ];
+        }
+
     }
 
     public static function user_update($data = []) {
         // your code here ...
         // vars
-        $user_id = isset($data['user_id']) && is_numeric($data['user_id']) ? $data['user_id'] : 0;
+        $email = isset($data['email']) ? mb_convert_case(trim($data['email']), MB_CASE_LOWER, 'UTF-8') : '';
+        $first_name = isset($data['first_name']) ? $data['first_name'] : '';
+        $last_name = isset($data['last_name']) ? $data['last_name'] : '';
+        $middle_name = isset($data['middle_name']) ? $data['middle_name'] : '';
         $phone = isset($data['phone']) ? preg_replace('~[^\d]+~', '', $data['phone']) : 0;
-        $count_fields = 0;
-        $query_update_fields = '';
-        $user_update_iterator = 0;
-        $user_notifications_fields = [];
-        $user_notifications_fields_iterator = 0;
-        $user_notifications_fields_string = '';
-        $user_notifications_fields_value = '';
-        // checking for existence fields in request
-        if (isset($data['phone_new'])) {
-            $count_fields++;
-        };
-        if (isset($data['first_name'])) {
-            $count_fields++;
-        }
-        if (isset($data['last_name'])) {
-            $count_fields++;
-        }
-        if (isset($data['middle_name'])) {
-            $count_fields++;
-        }
-        if (isset($data['email'])) {
-            $count_fields++;
-        }
-        if ($count_fields == 0) {
-            return [
-                'error' => 'there is no data for updating in the request'
-            ];
-        } else if ($count_fields == 5) {
-            // var update
-            // - check phone
-            if (phone_check(preg_replace('~[^\d]+~', '', $data['phone_new']))) {
-                $user_update['phone_new'] = isset($data['phone_new']) ? preg_replace('~[^\d]+~', '', $data['phone_new']) : $data['phone'];
-            } else {
-                return [
-                    'validate' => 'the digits in the phone number should be 11'
-                ];
-            }
-            // var update
-            $user_update['first_name'] = isset($data['first_name']) ? trim(strip_tags($data['first_name'])) : '';
-            $user_update['last_name'] = isset($data['last_name']) ? trim(strip_tags($data['last_name'])) : '';
-            $user_update['middle_name'] = isset($data['middle_name']) ? trim(strip_tags($data['middle_name'])) : '';
-            $user_update['email'] = isset($data['email']) ? mb_strtolower(trim(strip_tags($data['email']))) : '';
-            // checking for non-empty
-            if ($user_update['first_name'] == '') {
-                return [
-                    'validate' => 'first_name: the field should not be empty'
-                ];
-            }
-            if ($user_update['last_name'] == '') {
-                return [
-                    'validate' => 'last_name: the field should not be empty'
-                ];
-            }
-            if ($user_update['phone_new'] == '') {
-                return [
-                    'validate' => 'phone_new: the field should not be empty'
-                ];
-            }
-            // where
-            if ($user_id) $where = "user_id='".$user_id."'";
-            else if ($phone) $where = "phone='".$phone."'";
-            else return [];
-            // Set fields foreach string Query
-            foreach ($user_update as $key => $value) {
-                $user_update_iterator++;
-                if ($key == 'phone_new') $query_update_fields .= "phone={$value}, ";
-                else if (count($user_update) == $user_update_iterator) $query_update_fields .= "{$key}='{$value}' ";
-                else $query_update_fields .= "{$key}='{$value}', ";
-            }
-            // + 1 notification
-            DB::query("UPDATE users SET count_notifications=count_notifications+1 WHERE ".$where." LIMIT 1;") or die (DB::error());
-            // update
-            DB::query("UPDATE users SET ".$query_update_fields." WHERE ".$where." LIMIT 1;") or die (DB::error());
-            // select user
-            $q = DB::query("SELECT user_id, phone, first_name, last_name, middle_name, email, gender_id, count_notifications FROM users WHERE ".$where." LIMIT 1;") or die (DB::error());
-            if ($row = DB::fetch_row($q)) {
-                // notification fields
-                $user_notifications_fields = [
-                    'user_id' => $row['user_id'],
-                    'title' => 'title '.$row['first_name']." ".$row['last_name'],
-                    'description' => 'phone:'.$row['phone'],
-                    'viewed' => 0,
-                    'created' => time(),
-                ];
-                // Set fields foreach string Query
-                foreach ($user_notifications_fields as $key => $value) {
-                    $user_notifications_fields_iterator++;
-                    if (count($user_notifications_fields) == $user_notifications_fields_iterator) {
-                        $user_notifications_fields_string .= "{$key}";
-                        $user_notifications_fields_value .= "'{$value}'";
-                    } else {
-                        $user_notifications_fields_string .= "{$key},";
-                        $user_notifications_fields_value .= "'{$value}',";
-                    }
 
-                }
-                // add notification
-                $q = DB::query("INSERT INTO user_notifications (".$user_notifications_fields_string.") VALUES (".$user_notifications_fields_value.");") or die (DB::error());
-                DB::fetch_row($q);
-                return [
-                    'id' => (int) $row['user_id'],
-                    'first_name' => $row['first_name'],
-                    'last_name' => $row['last_name'],
-                    'middle_name' => $row['middle_name'],
-                    'gender_id' => (int) $row['gender_id'],
-                    'email' => $row['email'],
-                    'phone' => (int) $row['phone'],
-                    'phone_str' => phone_formatting($row['phone']),
-                    'count_notifications' => (int) $row['count_notifications']
-                ];
-            } else {
-                return [
-                    'id' => 0,
-                    'first_name' => '',
-                    'last_name' => '',
-                    'middle_name' => '',
-                    'gender_id' => 0,
-                    'email' => '',
-                    'phone' => '',
-                    'phone_str' => '',
-                    'count_notifications' => 0
-                ];
-            }
-        } else {
-            // do not update - fields count < 5
-            return [
-                'validate' => 'not field: phone_new or first_name or last_name or middle_name or email'
-            ];
-        }
+        // checking for existence fields in request
+        // set
+        $set = [];
+        if (isset($data['phone'])){
+            if (phone_check(preg_replace('~[^\d]+~', '', $phone))) {
+                $phone = isset($data['phone']) ? preg_replace('~[^\d]+~', '', $data['phone']) : $data['phone'];
+                $set[] = "phone='".$phone."'";
+            } else return [ 'error' => 'Parameter phone should 11 numbers' ];
+        } else return [ 'error' => 'Parameter phone is required'];
+        if (isset($data['email'])) $set[] = "email='".mb_strtolower($email)."'";
+        if (isset($data['first_name'])) $set[] = "first_name='".$first_name."'"; else return [ 'error' => 'Parameter first_name is required'];
+        if (isset($data['last_name'])) $set[] = "last_name='".$last_name."'"; else return [ 'error' => 'Parameter last_name is required'];
+        if (isset($data['middle_name'])) $set[] = "middle_name='".$middle_name."'";
+        if ($set) $set = implode(', ', $set);
+        else return error_response(1006, 'No parameters were passed to update.');
+
+        // update
+        DB::query("UPDATE users SET ".$set.", count_notifications=count_notifications+1 WHERE 'user_id' =".Session::$user_id." LIMIT 1;") or die (DB::error());
+        // add user_notifications
+        DB::query("INSERT INTO user_notifications (user_id, title, description, viewed, created ) VALUES ('".Session::$user_id."','title ".$first_name." ".$last_name."','".$phone."','".(0)."','".time()."');") or die (DB::error());
+        // output
+        return self::owner_info();
     }
 }

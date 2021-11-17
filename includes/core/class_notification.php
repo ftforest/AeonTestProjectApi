@@ -8,50 +8,40 @@ class Notification {
 
     public static function notification_info($data = []) {
         // vars
-        $user_id = isset($data['user_id']) && is_numeric($data['user_id']) ? $data['user_id'] : 0;
+        $items = [];
+        $limit = 50;
+        $next_offset = 0;
+        $offset = isset($data['offset']) && is_numeric($data['offset']) ? $data['offset'] : 0;
         $viewed = isset($data['viewed']) ? trim(strip_tags($data['viewed'])) : '';
-        $row_all_final = [];
         // where
-        if ($user_id) {
-            $where = "user_id='" . $user_id . "'";
-            if ($viewed == 'unread') $where .= " AND viewed='0'";
-            else if ($viewed == 'read') $where .= " AND viewed='1'";
-            else if ($viewed == 'all') $where .= "";
-        }
-        else return [];
+        $where = [];
+        $where[] = "user_id='".Session::$user_id."'";
+        if ($offset) $where[] = "notification_id<'".$offset."'";
+        if ($viewed == 'unread') $where[] = "viewed='0'";
+        if ($viewed == 'read') $where[] = "viewed='1'";
+        $where = implode(" AND ", $where);
         // info
-        $q = DB::query("SELECT notification_id, user_id, title, description, viewed, created FROM user_notifications WHERE ".$where." ;") or die (DB::error());
-        if ($row_all = DB::fetch_all($q)) {
-            foreach ($row_all as $row) {
-                $row_all_final[] = [
-//                    'notification_id' => (int) $row['notification_id'],
-//                    'user_id' => (int) $row['user_id'],
+        $q = DB::query("SELECT notification_id, user_id, title, description, viewed, created FROM user_notifications WHERE ".$where." ORDER BY notification_id DESC LIMIT ".$limit.";") or die (DB::error());
+        while ($row = DB::fetch_row($q)) {
+            $next_offset = $row['notification_id'];
+            $items[] = [
                     'title' => $row['title'],
                     'description' => $row['description'],
-                    'viewed' => $row['viewed'],
-//                    'created' => (int) $row['created'],
-                    'created_str' => date("d-m-Y ", (int) $row['created']),
-                ];
-            }
-            return $row_all_final;
-
-        } else {
-            return [
-                'message' => 'empty'
+                    'viewed' => (bool) $row['viewed'],
+                    'created' => date("Y-m-d\TH:i:s\Z ", $row['created']),
             ];
         }
+        // output
+        return ['items' => $items, 'next_offset' => (int) $next_offset];
     }
 
-    public static function notifications_read($data = []) {
-        // vars
-        $user_id = isset($data['user_id']) && is_numeric($data['user_id']) ? $data['user_id'] : 0;
-        // where
-        if ($user_id) $where = "user_id='" . $user_id . "'";
-        else return [];
-        $q = DB::query("UPDATE user_notifications SET viewed= 1  WHERE ".$where." ;") or die (DB::error());
-        return [
-            'message' => "Notifications all read User_id= ".$user_id
-        ];
+    public static function notifications_read() {
+        // query
+        DB::query("UPDATE users SET count_notifications='0' WHERE user_id='".Session::$user_id."' LIMIT 1;") or die (DB::error());
+        DB::query("UPDATE user_notifications SET viewed='1' WHERE user_id='".Session::$user_id."';") or die (DB::error());
+        // output
+        return ['message' => 'notifications read'];
     }
+
 }
 
