@@ -57,7 +57,6 @@ class User {
     // TEST
 
     public static function owner_info() {
-        // your code here ...
 
         $q = DB::query("SELECT user_id, phone, first_name, last_name, middle_name, email, gender_id, count_notifications FROM users WHERE 'user_id' = ".Session::$user_id." LIMIT 1;") or die (DB::error());
         if ($row = DB::fetch_row($q)) {
@@ -89,7 +88,6 @@ class User {
     }
 
     public static function user_update($data = []) {
-        // your code here ...
         // vars
         $email = isset($data['email']) ? mb_convert_case(trim($data['email']), MB_CASE_LOWER, 'UTF-8') : '';
         $first_name = isset($data['first_name']) ? $data['first_name'] : '';
@@ -116,7 +114,7 @@ class User {
         // update
         DB::query("UPDATE users SET ".$set.", count_notifications=count_notifications+1 WHERE 'user_id' =".Session::$user_id." LIMIT 1;") or die (DB::error());
         // add user_notifications
-        DB::query("INSERT INTO user_notifications (user_id, title, description, viewed, created ) VALUES ('".Session::$user_id."','title ".$first_name." ".$last_name."','".$phone."','".(0)."','".time()."');") or die (DB::error());
+        DB::query("INSERT INTO user_notifications (user_id, title, description, viewed, created ) VALUES ('".Session::$user_id."','title ".$first_name." ".$last_name."','".$phone."','".(0)."','".Session::$ts."');") or die (DB::error());
         // output
         return self::owner_info();
     }

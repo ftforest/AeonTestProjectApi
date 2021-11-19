@@ -118,11 +118,4 @@ class Session {
         exit();
     }
 
-    public static function read_notifications() {
-        return self::$token;
-        // query
-        DB::query("UPDATE user_notifications SET viewed= 1 WHERE user_id='1';") or die (DB::error());
-        return 'ok';
-    }
-
 }
